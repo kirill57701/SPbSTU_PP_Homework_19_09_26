@@ -1,5 +1,11 @@
 #include <pthread.h> Задача: POSIX
-// ...other includes...
+
+int isInside(double x, double y, double r)
+{
+  return (x * x + y * y <= r * r);
+}
+
+
 
 void* sample(void* data) {
   auto msg = static_cast< const char* >(data);
