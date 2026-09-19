@@ -1,4 +1,16 @@
 #include <iostream>
+#include <random>
+
+struct simConf {
+  double r;
+  size_t ipt;
+};
+
+struct thrSt {
+  const SimulationConfig* conf;
+  size_t seed;
+  size_t s_h;
+};
 
 bool isInside(double x, double y, double r)
 {
