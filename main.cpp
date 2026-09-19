@@ -1,27 +1,31 @@
 #include <iostream>
 #include <random>
-#include <pthread.h>
 #include <vector>
 #include <cstring>
+#include <pthread.h>
 
-struct simConf {
+struct SimConf_t
+{
   double r;
   size_t ipt;
 };
 
-struct thrSt {
-  const simConf* conf;
+struct ThrSt_t
+{
+  const SimConf_t* conf;
   size_t seed;
   size_t s_h;
 };
 
-bool isInside(double x, double y, double r) {
+bool isInside(const double x, const double y, const double r)
+{
   return (x * x + y * y <= r * r);
 }
 
-size_t clac(double r, size_t tests, size_t seed) {
+size_t calc(const double r, const size_t tests, const size_t seed)
+{
   std::default_random_engine eng(seed);
-  std::uniform_real_distribution<double> d(-r, r);
+  std::uniform_real_distribution< double > d(-r, r);
   size_t c = 0;
   for (size_t i = 0; i < tests; ++i) {
     c += isInside(d(eng), d(eng), r);
@@ -29,48 +33,54 @@ size_t clac(double r, size_t tests, size_t seed) {
   return c;
 }
 
-void* worker(void* arg) {
-  auto* st = static_cast<thrSt*>(arg);
-  st->s_h = clac(st->conf->r, st->conf->ipt, st->seed);
+void* worker(void* arg)
+{
+  auto* st = static_cast< ThrSt_t* >(arg);
+  st->s_h = calc(st->conf->r, st->conf->ipt, st->seed);
   return nullptr;
 }
 
-double area(double r, size_t threads, size_t tests) {
-  simConf conf{r, tests / threads};
-  std::vector<pthread_t> th(threads);
-  std::vector<thrSt> st(threads);
+double area(const double r, const size_t threads, const size_t tests)
+{
+  const SimConf_t conf{r, tests / threads};
+  std::vector< pthread_t > th(threads);
+  std::vector< ThrSt_t > st(threads);
+  std::random_device rd;
 
+  const size_t seedStep = 1000;
   for (size_t i = 0; i < threads; ++i) {
-    st[i] = {&conf, std::random_device{}() + i * 1000, 0};
-    int err = pthread_create(&th[i], nullptr, worker, &st[i]);
-    if (err) {
-      std::cerr << "create err: " << strerror(err) << "\n";
+    st[i] = {&conf, rd() + i * seedStep, 0};
+    const int err = pthread_create(&th[i], nullptr, worker, &st[i]);
+    if (err != 0) {
+      std::cerr << "create err: " << std::strerror(err) << "\n";
     }
   }
 
   size_t tot = 0;
   for (size_t i = 0; i < threads; ++i) {
-    int err = pthread_join(th[i], nullptr);
-    if (err) {
-      std::cerr << "join err: " << strerror(err) << "\n";
+    const int err = pthread_join(th[i], nullptr);
+    if (err != 0) {
+      std::cerr << "join err: " << std::strerror(err) << "\n";
     }
     tot += st[i].s_h;
   }
 
-  size_t rem = tests % threads;
+  const size_t rem = tests % threads;
   if (rem > 0) {
-    tot += clac(r, rem, std::random_device{}());
+    tot += calc(r, rem, rd());
   }
 
-  return (static_cast<double>(tot) / tests) * (4.0 * r * r);
+  const double boundingAreaMultiplier = 4.0;
+  return (static_cast< double >(tot) / tests) * (boundingAreaMultiplier * r * r);
 }
 
-int main() {
-  double r = 5.0;
-  size_t threads = 4;
-  size_t tests = 10000000;
+int main()
+{
+  const double r = 5.0;
+  const size_t threads = 4;
+  const size_t tests = 10000000;
 
-  double res = area(r, threads, tests);
+  const double res = area(r, threads, tests);
   std::cout << "area: " << res << "\n";
 
   return 0;
