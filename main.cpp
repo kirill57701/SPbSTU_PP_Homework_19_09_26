@@ -1,5 +1,8 @@
 #include <iostream>
 #include <random>
+#include <pthread.h>
+#include <vector>
+#include <cstring>
 
 struct simConf {
   double r;
@@ -7,29 +10,26 @@ struct simConf {
 };
 
 struct thrSt {
-  const SimulationConfig* conf;
+  const simConf* conf;
   size_t seed;
   size_t s_h;
 };
 
-bool isInside(double x, double y, double r)
-{
+bool isInside(double x, double y, double r) {
   return (x * x + y * y <= r * r);
 }
 
-size_t clac(double r, size_t tests, size_t seed)
-{
+size_t clac(double r, size_t tests, size_t seed) {
   std::default_random_engine eng(seed);
-  std::uniform_real_distribution<double> d(0, 2 * r);
-  size_t с = 0;
+  std::uniform_real_distribution<double> d(-r, r);
+  size_t c = 0;
   for (size_t i = 0; i < tests; ++i) {
-    с += isInside(dist(eng), dist(eng), r);
+    c += isInside(d(eng), d(eng), r);
   }
-  return с;
+  return c;
 }
 
-void* worker(void* arg)
-{
+void* worker(void* arg) {
   auto* st = static_cast<thrSt*>(arg);
   st->s_h = clac(st->conf->r, st->conf->ipt, st->seed);
   return nullptr;
@@ -44,7 +44,7 @@ double area(double r, size_t threads, size_t tests) {
     st[i] = {&conf, std::random_device{}() + i * 1000, 0};
     int err = pthread_create(&th[i], nullptr, worker, &st[i]);
     if (err) {
-      std::cerr << "create err: " << strerror(err) << "\n";[cite: 1]
+      std::cerr << "create err: " << strerror(err) << "\n";
     }
   }
 
@@ -52,7 +52,7 @@ double area(double r, size_t threads, size_t tests) {
   for (size_t i = 0; i < threads; ++i) {
     int err = pthread_join(th[i], nullptr);
     if (err) {
-      std::cerr << "join err: " << strerror(err) << "\n";[cite: 1]
+      std::cerr << "join err: " << strerror(err) << "\n";
     }
     tot += st[i].s_h;
   }
@@ -66,5 +66,12 @@ double area(double r, size_t threads, size_t tests) {
 }
 
 int main() {
+  double r = 5.0;
+  size_t threads = 4;
+  size_t tests = 10000000;
 
+  double res = area(r, threads, tests);
+  std::cout << "area: " << res << "\n";
+
+  return 0;
 }
