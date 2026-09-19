@@ -28,6 +28,13 @@ size_t clac(double r, size_t tests, size_t seed)
   return с;
 }
 
+void* worker(void* arg)
+{
+  auto* st = static_cast<thrSt*>(arg);
+  st->s_h = clac(st->conf->r, st->conf->ipt, st->seed);
+  return nullptr;
+}
+
 int main() {
 
 }
